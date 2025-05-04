@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=<device-width>, initial-scale=1.0">
+    <link rel="stylesheet" href="./app.css">
+    <title>Document</title>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <!-- <script>
+        // document.getElementById etc are browser APIs
+        // document.createElement is also a browser API
+        // Browsers have javascript engines that execute javascript code
+        // The DOM is the structure of the html document
+        // The DOM is a tree of nodes
+
+        document.getElementById('root').appendChild(document.createElement('h1'));
+    </script> -->
+
+
+    <!-- React is a library, that can be added to your project using CDN link 
+     that contains the Javascript code for the library. It is obviously written in plain Javascript.
+     The CDN link contains the development version of the library, which is not minified and is easier to read.
+     The production version of the library is minified and is not easy to read.
+    -->
+     <!-- This script contains core react code -->
+     <!-- the order of the scripts is important, your react code should be loaded after react core code-->
+    <!-- <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script> -->
+    <!-- This script contains react-dom code, which kind of bridges react core code with the html DOM -->
+    <!-- <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script> -->
+
+    <!-- <script>
+        // React.createElement is a function that creates a new element
+        // The first argument is the type of the element
+        // The second argument is the props of the element
+        // The third argument is the children of the element
+        const heading = React.createElement('h1', {}, 'Hello World'); 
+
+        // ReactDOM.createRoot is a function that creates a new root
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(heading);
+
+    </script> -->
+
+    <script src="./app.js" type="module"></script>
+
+</body>
+</html>
