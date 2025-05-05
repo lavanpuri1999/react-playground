@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Function to get changed files between main and current branch
 function getChangedFiles() {
@@ -18,45 +20,84 @@ function getChangedFiles() {
   }
 }
 
-// Function to create a test file
-function createTestFile(filePath) {
-  const fileName = path.basename(filePath);
-  const testFileName = `${fileName.split('.')[0]}.test.js`;
-  const testDir = path.join(path.dirname(filePath), '__tests__');
-  const testFilePath = path.join(testDir, testFileName);
-
-  // Create __tests__ directory if it doesn't exist
-  if (!fs.existsSync(testDir)) {
-    fs.mkdirSync(testDir, { recursive: true });
+// Function to check if test file exists and get its content
+function getExistingTestFile(filePath) {
+    const fileName = path.basename(filePath);
+    const testFileName = `${fileName.split('.')[0]}.test.js`;
+    const testFilePath = path.join(path.dirname(filePath), testFileName);
+  
+    if (fs.existsSync(testFilePath)) {
+      const content = fs.readFileSync(testFilePath, 'utf8');
+      return {
+        exists: true,
+        path: testFilePath,
+        content: content
+      };
+    }
+  
+    return {
+      exists: false,
+      path: testFilePath,
+      content: null
+    };
   }
 
-  // Generate test content
-  const testContent = `import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import ${fileName.split('.')[0]} from '../${fileName}';
+// Function to get changes for a specific file
+function getFileChanges(filePath) {
+  try {
+    const changes = execSync(`git diff origin/main...HEAD -- ${filePath}`)
+      .toString();
+    return changes;
+  } catch (error) {
+    console.error(`Error getting changes for ${filePath}:`, error.message);
+    return '';
+  }
+}
 
-describe('${fileName}', () => {
-  it('should render without crashing', () => {
-    render(<${fileName.split('.')[0]} />);
-    expect(screen.getByTestId('${fileName.split('.')[0].toLowerCase()}-component')).toBeInTheDocument();
-  });
+async function callModelToWriteTestsForFile(fileName, fileChanges, existingTests) {
+    const model = await ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const basePrompt = `
+        You are a test writer for a react component.
+        Here are the new code changes to the file: ${fileChanges}
+        Write tests for the file: ${fileName}
+        Give me the code for the whole test file, if the prompt contains existing tests for the file, add them to the test file. 
+        Also do not modify tests or parts of the test file which is not related to the new code changes.
+        Otherwise, write the tests from scratch.
+        Do not add any other text to the response, just the code for the test file.
+        The reponse you generate should start with import statements and end with the closing tag of the test file.
+    `;
+    const existingTestPrompt = `Here are the existing tests for the file: ${existingTests}`
+    const prompt = existingTests.exists ? `${basePrompt}\n${existingTestPrompt}` : basePrompt;
+    const response = await model.generateContent(prompt);
+    return response.response.text();
+}
 
-  // Add more test cases as needed
-});
-`;
+
+// Function to create a test file
+function createTestFile(filePath, testContent) {
+  const fileName = path.basename(filePath);
+  const testFileName = `${fileName.split('.')[0]}.test.js`;
+  const testFilePath = path.join(path.dirname(filePath), testFileName);
+
+  // Create directory if it doesn't exist
+  if (!fs.existsSync(path.dirname(testFilePath))) {
+    fs.mkdirSync(path.dirname(testFilePath), { recursive: true });
+  }
 
   // Write test file
+  testContent = testContent.replace('```javascript', '').replace('```', '');
   fs.writeFileSync(testFilePath, testContent);
   console.log(`Created test file: ${testFilePath}`);
 }
 
 // Main function
-function generateTests() {
+async function generateTests() {
   const changedFiles = getChangedFiles();
   const jsFiles = changedFiles.filter(file => 
     file.endsWith('.js') && 
     !file.endsWith('.test.js') &&
-    !file.includes('__tests__') 
+    !file.includes('__tests__') &&
+    file.startsWith('components')
   );
 
   if (jsFiles.length === 0) {
@@ -64,11 +105,12 @@ function generateTests() {
     return;
   }
 
-  jsFiles.forEach(file => {
-    createTestFile(file);
+  jsFiles.forEach(async (file) => {
+    const changes = getFileChanges(file);
+    const existingTestFile = getExistingTestFile(file);
+    const testContent = await callModelToWriteTestsForFile(file, changes, existingTestFile);
+    createTestFile(file, testContent);
   });
-
-  console.log(`Generated ${jsFiles.length} test files for changed JavaScript files`);
 }
 
 // Run the script
