@@ -3,6 +3,8 @@
 // We need to add type="module" to the script tag in the html file
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import Navbar from './components/Navbar';
+import ModalButton from './components/ModalButton';
 
 // React.createElement => ReactElement (JS object) => HTMLElement(render)
 const heading = React.createElement('h1', { id: "heading" }, 'React "create element" rendered heading');
@@ -30,5 +32,16 @@ const HeadingComponent = () => {
     </div>
 };
 
+const App = () => {
+  return (
+    <div className="app" data-testid="app-component">
+      <Navbar />
+      <ModalButton />
+    </div>
+  );
+};
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(jsxHeading);
+root.render(<App />);
+
+export default App;
