@@ -3,9 +3,11 @@ name: Pull Request Checks
 on:
   pull_request:
     branches: [ main ]
+    types: [labeled]
 
 jobs:
   build:
+    if: github.event.label.name == 'add-tests'
     runs-on: ubuntu-latest
     permissions:
       contents: write
