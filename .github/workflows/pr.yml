@@ -14,6 +14,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # This fetches all history for all branches and tags
     
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v3
@@ -27,7 +29,9 @@ jobs:
     - name: Generate Tests
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      run: npm run writeTests
+      run: |
+        git fetch origin main
+        npm run writeTests
     
     - name: Build project
       run: npm run build 
