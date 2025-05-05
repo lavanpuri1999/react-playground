@@ -18,6 +18,12 @@ function configureGit() {
 // Function to commit generated test files
 function commitTestFiles() {
   try {
+    // Get the current branch name from GitHub Actions environment variable
+    const branchName = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME;
+    if (!branchName) {
+      throw new Error('Could not determine branch name');
+    }
+
     // Add all test files
     execSync('git add components/*.test.js');
     
@@ -27,8 +33,8 @@ function commitTestFiles() {
       // Commit the changes
       execSync('git commit -m "added unit tests for code changes"');
       
-      // Push the changes to the PR branch
-      execSync('git push');
+      // Push the changes to the PR branch using the branch name
+      execSync(`git push origin HEAD:${branchName}`);
       
       console.log('Successfully committed and pushed test files');
     } else {
